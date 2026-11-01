@@ -1,7 +1,7 @@
 # 🎼 Counterpoint (CP) — Multi-Agent Communication & Synchronization Mesh
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-21%2F21%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-44%2F44%20passing-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dependencies](https://img.shields.io/badge/dependencies-zero%20(pure%20python%20%2B%20optional%20numpy)-success.svg)]()
 
@@ -189,9 +189,103 @@ Gdy $\Gamma > 0.35$ przy niskiej zdawalności zadań, moduł automatycznie podda
 
 ---
 
+## 🧠 Kalibracja Epistemiczna i Test Litmus (Anti-Compromise Layer)
+
+### Problem: Fałsz Złotego Środka (*Argumentum ad Temperantiam*)
+
+Gdy jeden agent twierdzi *„Ziemia jest kulista"* (prawda), a drugi *„Ziemia jest płaska”* (fałsz), naiwne systemy oparte na uśrednianiu dochodzą do wniosku: *„Ziemia to półkula"*. **To nie jest kompromis — to nowa halucynacja.**
+
+Counterpoint eliminuje ten problem za pomocą dwóch modułów: `EpistemicLedger` i `LitmusEngine`, które tworzą **podwójną bramkę weryfikacji** na szlaku syntezy dialektycznej.
+
+### 1. `EpistemicLedger` — Księga Wiarygodności
+
+Klasa śledząca dynamiczną wagę epistemologiczną $w_i \in [0, 1]$ każdego głosu:
+
+| Mechanizm | Opis |
+|---|---|
+| **Ground-Truth Probing** | Mikro-testy z twardą, znaną odpowiedzią kalibrują trafność każdego agenta na starcie i cyklicznie. |
+| **Asymmetric Truth Gravity** | Synteza nie uśrednia $(A+B)/2$, lecz stosuje ważoną projekcję $w_A \cdot A + w_B \cdot B$. Jeśli luka autorytetu $\Delta w > 0.40$, słabszy głos jest **eliminowany** (zero szarego kompromisu). |
+| **Overconfidence Penalty** | Kara za halucynacyjną pewność siebie: $\text{penalty} = \beta_{oc} \cdot c_i$ gdy odpowiedź jest błędna. |
+| **Epistemic Quarantine** | Głos z $w_i \leq 0.15$ traci prawo głosu decyzyjnego i przechodzi w tryb *Listener*. |
+
+```python
+from counterpoint import EpistemicLedger, LitmusEngine
+
+# Inicjalizacja (domyślnie aktywna w CounterpointMesh)
+ledger = EpistemicLedger(
+    initial_authority=0.50,
+    accuracy_bonus=0.08,
+    overconfidence_beta=0.15,
+    dominance_threshold=0.40
+)
+
+# Kalibracja: znane pytanie z twardą odpowiedzią
+record = ledger.run_calibration_probe(
+    voice_id="Coder",
+    question_id="math_001",
+    expected_answer="42",
+    voice_answer="42",       # poprawnie → w_i rośnie o 0.08
+    confidence=0.9
+)
+
+# Asymetryczna grawitacja: kto dominuje?
+w_a, w_b, rejected = ledger.compute_asymmetric_weights("Coder", "Critic")
+leader = ledger.get_leader(["Coder", "Critic"])  # → głos z najwyższym w_i
+```
+
+### 2. `LitmusEngine` — Przywilej Lidera (Test Sokratyczny)
+
+Głos o **najwyższym autorytecie** ($w_{\max}$) w danym takcie zyskuje prawo wygenerowania jednego testu falsyfikującego:
+
+> *„Twierdzisz, że twoja wersja jest poprawna? Sprawdźmy ją na tym jednym, skrajnym przypadku."*
+
+Workflow w każdym Barze:
+1. `EpistemicLedger` identyfikuje **Lidera Epistemologicznego**.
+2. Lider rejestruje predykat `probe_fn: (content) -> bool`.
+3. Syntezowane $O'$ jest poddawane testowi lidera.
+4. Jeśli $O'$ **oblewa** test → synteza odrzucana natychmiast.
+5. Jeśli $O'$ **przechodzi** → kontynuacja do standardowej kotwicy zewnętrznej ($v_{\text{ext}}$).
+
+```python
+from counterpoint import LitmusEngine, LitmusResult
+
+engine = LitmusEngine()
+
+# Lider (np. "Architect") generuje test falsyfikujący:
+engine.register_probe(
+    leader_voice_id="Architect",
+    probe_fn=lambda code: "return a + b" in code and "assert" not in code,
+    description="Funkcja add musi zwracać sumę (edge case: a=0, b=0)",
+    probe_name="test_add_edge_case"
+)
+
+# Wykonanie testu na propozycji rywala:
+result = engine.execute_probe(
+    leader_voice_id="Architect",
+    target_voice_id="Coder",
+    content_to_test="def add(a, b): return a - b"
+)
+# result.probe_passed → False  (propozycja eliminowana!)
+```
+
+### 3. Podwójna Bramka Weryfikacji Syntezy
+
+Warunek akceptacji syntezy $R(A,B) \rightarrow O'$ w `ResolutionEngine`:
+
+$$\text{accepted} = \left( \Delta_{\text{syn}} > 0 \right) \wedge \left( v_{\text{ext}} = 1 \right) \wedge \left( \text{litmus\_passed} \right)$$
+
+| Bramka | Moduł | Rola |
+|---|---|---|
+| **Gate 1** — Litmus Probe | `LitmusEngine` | Test Sokratyczny lidera (przypadek graniczny / kontrprzykład) |
+| **Gate 2** — Programmatic Anchor | `verifier_fn` → $v_{\text{ext}} \in \{0,1\}$ | Twardy test jednostkowy (pytest / parser AST) |
+
+Obie bramki muszą zwrócić `True`, aby synteza została zatwierdzona. Głosy uczestniczące w odrzuconej syntezie tracą wagę epistemologiczną (`synthesis_penalty`), co kaskadowo wzmacnia grawitację prawdy w kolejnych taktach.
+
+---
+
 ## 🧪 Uruchomienie Testów i Dema
 
-### 1. Testy Jednostkowe i Integracyjne (100% PASS, 21 testów w 0.10s):
+### 1. Testy Jednostkowe i Integracyjne (100% PASS, 44 testów w 0.15s):
 ```bash
 pytest
 # lub:
@@ -238,7 +332,9 @@ counterpoint/
 │   ├── score_memory.py         # GCL O(n) Causal Blackboard i AdaptiveGate
 │   ├── friction_bus.py         # Szyna tarcia poznawczego i dynamika ODE
 │   ├── resolution_engine.py    # Bramka syntezy dialektycznej R(A,B)->O' i Beauty Index
-│   └── equilibrium_governor.py # DRM Governor, wskaźnik harmonii Phi i Goodhart Guard
+│   ├── equilibrium_governor.py # DRM Governor, wskaźnik harmonii Phi i Goodhart Guard
+│   ├── epistemic_ledger.py     # Księga Wiarygodności: kalibracja w_i i grawitacja prawdy
+│   └── litmus_engine.py        # Przywilej Lidera: test Sokratyczny (falsyfikacja)
 └── adapters/
     ├── langgraph_adapter.py    # Gotowy węzeł synchronizujący do LangGraph
     └── standard_agent.py       # Wrapper dla dowolnych funkcji LLM (Ollama, OpenAI)

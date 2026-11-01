@@ -20,6 +20,8 @@ from counterpoint.core.score_memory import ScoreMemory
 from counterpoint.core.friction_bus import FrictionBus
 from counterpoint.core.resolution_engine import ResolutionEngine
 from counterpoint.core.equilibrium_governor import EquilibriumGovernor
+from counterpoint.core.epistemic_ledger import EpistemicLedger
+from counterpoint.core.litmus_engine import LitmusEngine
 
 
 class CounterpointMesh:
@@ -34,10 +36,15 @@ class CounterpointMesh:
         complexity_penalty: float = 0.05,
         target_harmony: float = 0.0,
         harmony_tolerance: float = 0.30,
-        synthesizer_fn: Optional[Callable[[str, str, Dict[str, Any]], str]] = None
+        synthesizer_fn: Optional[Callable[[str, str, Dict[str, Any]], str]] = None,
+        enable_epistemic_calibration: bool = True
     ):
         self.hidden_dim = hidden_dim
         self.schema_dim = schema_dim
+        
+        # Epistemic Calibration & Litmus Engine (Anti-Compromise)
+        self.ledger = EpistemicLedger() if enable_epistemic_calibration else None
+        self.litmus_engine = LitmusEngine() if enable_epistemic_calibration else None
         
         # Subsystems
         self.score_memory = ScoreMemory(hidden_dim=hidden_dim, schema_dim=schema_dim)
@@ -45,7 +52,9 @@ class CounterpointMesh:
         self.resolution_engine = ResolutionEngine(
             opposition_threshold=opposition_threshold,
             complexity_penalty=complexity_penalty,
-            synthesizer_fn=synthesizer_fn
+            synthesizer_fn=synthesizer_fn,
+            ledger=self.ledger,
+            litmus_engine=self.litmus_engine
         )
         self.governor = EquilibriumGovernor(
             target_harmony=target_harmony,
@@ -78,6 +87,11 @@ class CounterpointMesh:
 
         voice = Voice(name=name, role=role, mesh=self, metadata=metadata)
         self.voices[name] = voice
+        
+        # Register voice in EpistemicLedger
+        if self.ledger is not None:
+            self.ledger.register_voice(name)
+        
         return voice
 
     def get_schema_for(self, voice_name: str) -> Dict[str, Any]:
@@ -118,6 +132,10 @@ class CounterpointMesh:
         active_names = list(voice_states.keys())
         gates: Dict[str, float] = {}
         per_voice_friction: Dict[str, Dict[str, float]] = {}
+
+        # Clear litmus probes from previous bar
+        if self.litmus_engine is not None:
+            self.litmus_engine.clear_probes()
 
         # 1. Ingest states into FrictionBus & ScoreMemory
         for name, state in voice_states.items():

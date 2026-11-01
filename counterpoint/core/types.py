@@ -182,6 +182,9 @@ class SynthesisResult:
     external_verdict: int = 0                 # Programmatic anchor result v_ext in {0, 1}
     accepted: bool = False
     message: str = ""
+    asymmetric_weights: Dict[str, float] = field(default_factory=dict) # Epistemic weights (w_A, w_B)
+    litmus_verdict: Optional[bool] = None                              # Leader's litmus probe result
+    compromise_rejected: bool = False                                 # True if grey compromise was pruned in favor of truth
 
 
 @dataclass

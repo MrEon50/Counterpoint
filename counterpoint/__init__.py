@@ -28,6 +28,8 @@ from counterpoint.core.score_memory import ScoreMemory
 from counterpoint.core.friction_bus import FrictionBus
 from counterpoint.core.resolution_engine import ResolutionEngine
 from counterpoint.core.equilibrium_governor import EquilibriumGovernor
+from counterpoint.core.epistemic_ledger import EpistemicLedger, CalibrationRecord
+from counterpoint.core.litmus_engine import LitmusEngine, LitmusResult
 from counterpoint.mesh import CounterpointMesh
 from counterpoint.voice import Voice
 
@@ -46,5 +48,9 @@ __all__ = [
     "FrictionBus",
     "ResolutionEngine",
     "EquilibriumGovernor",
+    "EpistemicLedger",
+    "CalibrationRecord",
+    "LitmusEngine",
+    "LitmusResult",
     "__version__",
 ]
