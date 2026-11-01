@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "counterpoint-mesh"
+version = "1.0.0"
+description = "Neuro-Symbolic Multi-Agent Communication & Synchronization Middleware"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "MrEon50 & Antigravity" }
+]
+keywords = [
+    "multi-agent",
+    "llm",
+    "orchestration",
+    "neuro-symbolic",
+    "synchronization",
+    "langgraph",
+    "crewai",
+    "autogen"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+dependencies = []
+
+[project.optional-dependencies]
+numpy = ["numpy>=1.20"]
+torch = ["torch>=1.12.0"]
+dev = ["pytest>=7.0.0"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
